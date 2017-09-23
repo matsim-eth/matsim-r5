@@ -2,9 +2,12 @@ package ch.ethz.matsim.r5;
 
 import java.io.File;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.TransportMode;
@@ -19,26 +22,58 @@ import com.conveyal.r5.api.util.Itinerary;
 import com.conveyal.r5.api.util.LegMode;
 import com.conveyal.r5.api.util.PointToPointConnection;
 import com.conveyal.r5.api.util.ProfileOption;
+import com.conveyal.r5.api.util.SegmentPattern;
+import com.conveyal.r5.api.util.StreetSegment;
+import com.conveyal.r5.api.util.TransitJourneyID;
 import com.conveyal.r5.api.util.TransitModes;
+import com.conveyal.r5.api.util.TripPattern;
 import com.conveyal.r5.point_to_point.builder.PointToPointQuery;
 import com.conveyal.r5.profile.ProfileRequest;
+import com.conveyal.r5.transit.RouteInfo;
 import com.conveyal.r5.transit.TransportNetwork;
 
 public class RunTest {
 	public static void main(String[] args) throws Exception {
-		final String day = "2017-10-11";
+		final String day = "2017-02-05";
 		final String timezone = "+02:00";
 
 		String path = "/home/sebastian/r5/input/network.dat";
 		TransportNetwork transportNetwork = TransportNetwork.read(new File(path));
-
-		Coord fromCoord = new Coord(47.4085154657897, 8.507575392723083);
-		Coord toCoord = new Coord(47.419115338510494, 8.50142776966095);
 		
-		double departureTime = 8.0 * 3600.0;
+		// START: Cleanup of Switzerland GTFS, there are invalid modes included
+		
+		List<Integer> routeIndices = new LinkedList<>();
+		
+		for (int i = 0; i < transportNetwork.transitLayer.routes.size(); i ++) {
+			RouteInfo route = transportNetwork.transitLayer.routes.get(i);
+			
+			if (route.route_type >= 1500) {
+				route.route_type = 1200; // Needs to be valid to avoid exception
+				routeIndices.add(i); // Save to deactivate associated patterns
+			}
+		}
+		
+		for (com.conveyal.r5.transit.TripPattern pattern : transportNetwork.transitLayer.tripPatterns) {
+			if (routeIndices.contains(pattern.routeIndex)) {
+				pattern.tripSchedules.clear(); // Remove all schedules to deactivate
+			}
+		}
+		
+		// END: Cleanup
+		
+		//Coord fromCoord = new Coord(47.4085154657897, 8.507575392723083);
+		//Coord toCoord = new Coord(47.419115338510494, 8.50142776966095);
+		
+		//Coord fromCoord = new Coord(47.3779671928823, 8.539735078811646);
+		//Coord toCoord = new Coord(47.36685037580459, 8.541269302368164);
+		
+		Coord fromCoord = new Coord(47.36638530755708, 8.540582656860352);
+		Coord toCoord = new Coord(47.40845737841777, 8.504962921142578);
+		
+		double departureTime = 7.5 * 3600.0;
 		
 		double minDepartureTime = departureTime;
-		double maxDepartureTime = departureTime + 2.0 * 3600.0;
+		double maxDepartureTime = departureTime + 5.0 * 3600.0;
 
 		PointToPointQuery query = new PointToPointQuery(transportNetwork);
 		ProfileRequest profileRequest = new ProfileRequest();
@@ -61,7 +96,7 @@ public class RunTest {
 		profileRequest.setTime(startTimestamp, endTimestamp);
 
 		profileRequest.directModes = EnumSet.noneOf(LegMode.class); // No direct walk
-		profileRequest.transitModes = EnumSet.of(TransitModes.TRAM, TransitModes.RAIL, TransitModes.BUS);
+		profileRequest.transitModes = EnumSet.of(TransitModes.TRAM, TransitModes.RAIL, TransitModes.BUS, TransitModes.FUNICULAR);
 		profileRequest.accessModes = EnumSet.of(LegMode.WALK);
 		profileRequest.egressModes = EnumSet.of(LegMode.WALK);
 
@@ -107,6 +142,10 @@ public class RunTest {
 					quickestItinerary = itinerary;
 					quickestArrivalTime = arrivalTime;
 				}
+				
+				/*if (option.summary.contains("routes 8, 5")) {
+					System.out.println("HERE");
+				}*/
 			}
 		}
 		
@@ -114,12 +153,21 @@ public class RunTest {
 			throw new IllegalStateException();
 		}
 		
+		/*StreetSegment accessSegment = quickestOption.access.get(quickestItinerary.connection.access);
+		StreetSegment egressSegment = quickestOption.egress.get(quickestItinerary.connection.egress);
+		
+		List<SegmentPattern> transitPatterns = new LinkedList<>();
+		
+		for (int i = 0; i < quickestItinerary.connection.transit.size(); i++) {
+			TransitJourneyID journey = quickestItinerary.connection.transit.get(i);
+			quickestOption.transit.get(i).segmentPatterns.get(journey.pattern);
+		}*/
+		
+		
+		
 		System.exit(1);
 		
-		double itineraryStartTime = 0.0;
-		itineraryStartTime += quickestItinerary.startTime.getHour() * 3600.0;
-		itineraryStartTime += quickestItinerary.startTime.getMinute() * 60.0;
-		itineraryStartTime += quickestItinerary.startTime.getSecond();
+		double itineraryStartTime = quickestItinerary.startTime.get(ChronoField.SECOND_OF_DAY);
 		
 		Leg accessLeg = PopulationUtils.createLeg(TransportMode.transit_walk);
 		accessLeg.setDepartureTime(departureTime);

@@ -38,6 +38,9 @@ import com.conveyal.r5.profile.ProfileRequest;
 import com.conveyal.r5.transit.TransportNetwork;
 
 import ch.ethz.matsim.r5.scoring.R5ItineraryScorer;
+import ch.ethz.matsim.r5.utils.spatial.CoordToLatLonTransformation;
+import ch.ethz.matsim.r5.utils.spatial.LatLon;
+import ch.ethz.matsim.r5.utils.spatial.LatLonToCoordTransformation;
 
 /**
  * R5 Transit Router for MATSim
@@ -52,8 +55,8 @@ public class R5TransitRouter implements TransitRouter {
 	final private TransitSchedule transitSchedule;
 	final private R5ItineraryScorer scorer;
 
-	final private CoordinateTransformation xyToLatLon;
-	final private CoordinateTransformation latLonToXY;
+	final private CoordToLatLonTransformation coordToLatLon;
+	final private LatLonToCoordTransformation latLonToCoord;
 
 	final private String day;
 	final private String timezone;
@@ -67,9 +70,9 @@ public class R5TransitRouter implements TransitRouter {
 	 *            MATSim transit schedule with R5 stop ids included
 	 * @param scorer
 	 *            Scores the obtained routes for selection
-	 * @param xyToLonLat
+	 * @param coordToLonLat
 	 *            Transformation from MATSim (x,y) to longitude/latitude
-	 * @param lonLatToXY
+	 * @param lonLatToCoord
 	 *            Transformaton from longitude/latitude to MATSim (x,y)
 	 * @param day
 	 *            Selected day of the transit schedule, given as a string in
@@ -79,13 +82,13 @@ public class R5TransitRouter implements TransitRouter {
 	 *            the schedule input), given e.g. as +02:00
 	 */
 	public R5TransitRouter(TransportNetwork transportNetwork, TransitSchedule transitSchedule,
-			R5ItineraryScorer scorer, CoordinateTransformation xyToLonLat, CoordinateTransformation lonLatToXY,
+			R5ItineraryScorer scorer, CoordToLatLonTransformation coordToLonLat, LatLonToCoordTransformation lonLatToCoord,
 			String day, String timezone) {
 		this.transportNetwork = transportNetwork;
 		this.transitSchedule = transitSchedule;
 		this.scorer = scorer;
-		this.xyToLatLon = xyToLonLat;
-		this.latLonToXY = lonLatToXY;
+		this.coordToLatLon = coordToLonLat;
+		this.latLonToCoord = lonLatToCoord;
 		this.day = day;
 		this.timezone = timezone;
 	}
@@ -107,17 +110,18 @@ public class R5TransitRouter implements TransitRouter {
 	private ProfileRequest prepareProfileRequest(Facility<?> fromFacility, Facility<?> toFacility, double departureTime) {
 		ProfileRequest profileRequest = new ProfileRequest();
 
-		Coord fromCoord = xyToLatLon.transform(fromFacility.getCoord());
-		Coord toCoord = xyToLatLon.transform(toFacility.getCoord());
+		LatLon fromLatLon = coordToLatLon.transform(fromFacility.getCoord());
+		LatLon toLatLon = coordToLatLon.transform(toFacility.getCoord());
 
+		// endTimestamp is +1 sec to avoid aborting
 		String startTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
-		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
+		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime + 1.0), timezone);
 
 		profileRequest.zoneId = transportNetwork.getTimeZone();
-		profileRequest.fromLat = fromCoord.getY();
-		profileRequest.fromLon = fromCoord.getX();
-		profileRequest.toLat = toCoord.getY();
-		profileRequest.toLon = toCoord.getX();
+		profileRequest.fromLat = fromLatLon.getLatitude();
+		profileRequest.fromLon = fromLatLon.getLongitude();
+		profileRequest.toLat = toLatLon.getLatitude();
+		profileRequest.toLon = toLatLon.getLongitude();
 		profileRequest.setTime(startTimestamp, endTimestamp);
 
 		profileRequest.directModes = EnumSet.noneOf(LegMode.class); // No direct walk
@@ -168,8 +172,17 @@ public class R5TransitRouter implements TransitRouter {
 	 * @param stop
 	 */
 	private TransitStopFacility getStopFacility(Stop stop) {
-		// TODO: Cache this somehow and ideally associate a R5 stop with a MATSim link
 		Id<TransitStopFacility> stopId = Id.create(stop.stopId, TransitStopFacility.class);
+		
+		if (!transitSchedule.getFacilities().containsKey(stopId)) {
+			Coord coord = latLonToCoord.transform(new LatLon(stop.lat, stop.lon));
+			
+			TransitStopFacility facility = transitSchedule.getFactory().createTransitStopFacility(stopId, coord, false);
+			facility.setName(stop.name);
+			
+			transitSchedule.addStopFacility(facility);
+		}
+		
 		return transitSchedule.getFacilities().get(stopId);
 	}
 
@@ -188,9 +201,9 @@ public class R5TransitRouter implements TransitRouter {
 	 */
 	private double getRouteDistance(Stop fromStop, Stop toStop, int routeIndex) {
 		// TODO: Eventually, this should become a routed distance!
-		Coord fromCoord = latLonToXY.transform(new Coord(fromStop.lat, fromStop.lon));
-		Coord toCoord = latLonToXY.transform(new Coord(toStop.lat, toStop.lon));
-		return CoordUtils.calcEuclideanDistance(fromCoord, toCoord);
+		Coord fromLatLon = latLonToCoord.transform(new LatLon(fromStop.lat, fromStop.lon));
+		Coord toLatLon = latLonToCoord.transform(new LatLon(toStop.lat, toStop.lon));
+		return CoordUtils.calcEuclideanDistance(fromLatLon, toLatLon);
 	}
 
 	/**

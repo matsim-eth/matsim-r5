@@ -49,9 +49,6 @@ public class RunTest {
 
 		String path = "/home/sebastian/r5/input/network.dat";
 		TransportNetwork transportNetwork = TransportNetwork.read(new File(path));
-		
-		transportNetwork.transitLayer.summarizeRoutesAndPatterns();
-		System.exit(1);
 
 		// START: Cleanup of Switzerland GTFS, there are invalid modes included
 
@@ -92,7 +89,7 @@ public class RunTest {
 		double departureTime = 7.5 * 3600.0;
 
 		double minDepartureTime = departureTime;
-		double maxDepartureTime = 10 * 3600.0;
+		double maxDepartureTime = 7.5 * 3600.0 + 1;
 
 		PointToPointQuery query = new PointToPointQuery(transportNetwork);
 		ProfileRequest profileRequest = new ProfileRequest();

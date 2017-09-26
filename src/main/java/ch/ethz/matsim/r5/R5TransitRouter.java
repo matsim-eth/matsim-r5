@@ -1,86 +1,355 @@
 package ch.ethz.matsim.r5;
 
-import java.util.Collections;
+import java.time.temporal.ChronoField;
 import java.util.EnumSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Route;
+import org.matsim.core.population.PopulationUtils;
+import org.matsim.core.population.routes.GenericRouteImpl;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.misc.Time;
 import org.matsim.facilities.Facility;
 import org.matsim.pt.router.TransitRouter;
+import org.matsim.pt.routes.ExperimentalTransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitLine;
+import org.matsim.pt.transitSchedule.api.TransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 import com.conveyal.r5.api.ProfileResponse;
 import com.conveyal.r5.api.util.Itinerary;
 import com.conveyal.r5.api.util.LegMode;
-import com.conveyal.r5.api.util.PointToPointConnection;
 import com.conveyal.r5.api.util.ProfileOption;
+import com.conveyal.r5.api.util.SegmentPattern;
+import com.conveyal.r5.api.util.Stop;
+import com.conveyal.r5.api.util.StreetSegment;
 import com.conveyal.r5.api.util.TransitModes;
+import com.conveyal.r5.api.util.TransitSegment;
 import com.conveyal.r5.point_to_point.builder.PointToPointQuery;
 import com.conveyal.r5.profile.ProfileRequest;
 import com.conveyal.r5.transit.TransportNetwork;
 
-public class R5TransitRouter {// implements TransitRouter {
-	/*final private TransportNetwork transportNetwork;
-	final private CoordinateTransformation xyToLonLat;
-	
-	final private String day = "2017-10-11";
-	final private String timezone = "+02:00";
-	
-	public List<Leg> calcRoute(Facility<?> fromFacility, Facility<?> toFacility, double departureTime, Person person) {
-		PointToPointQuery query = new PointToPointQuery(transportNetwork);
+import ch.ethz.matsim.r5.scoring.R5ItineraryScorer;
+
+/**
+ * R5 Transit Router for MATSim
+ * 
+ * - Currently transit routes are not related to the MATSim network - Distances
+ * are crowfly distances, while travel times are routed according to schedule
+ * 
+ * @author Sebastian Hörl <sebastian.hoerl@ivt.baug.ethz.ch>
+ */
+public class R5TransitRouter implements TransitRouter {
+	final private TransportNetwork transportNetwork;
+	final private TransitSchedule transitSchedule;
+	final private R5ItineraryScorer scorer;
+
+	final private CoordinateTransformation xyToLatLon;
+	final private CoordinateTransformation latLonToXY;
+
+	final private String day;
+	final private String timezone;
+
+	/**
+	 * R5 Transit Router for MATSim
+	 * 
+	 * @param transportNetwork
+	 *            R5 TransportNetwork instance
+	 * @param transitSchedule
+	 *            MATSim transit schedule with R5 stop ids included
+	 * @param scorer
+	 *            Scores the obtained routes for selection
+	 * @param xyToLonLat
+	 *            Transformation from MATSim (x,y) to longitude/latitude
+	 * @param lonLatToXY
+	 *            Transformaton from longitude/latitude to MATSim (x,y)
+	 * @param day
+	 *            Selected day of the transit schedule, given as a string in
+	 *            YYYY-MM-DD
+	 * @param timezone
+	 *            Selected timezone in which departure times are given (should match
+	 *            the schedule input), given e.g. as +02:00
+	 */
+	public R5TransitRouter(TransportNetwork transportNetwork, TransitSchedule transitSchedule,
+			R5ItineraryScorer scorer, CoordinateTransformation xyToLonLat, CoordinateTransformation lonLatToXY,
+			String day, String timezone) {
+		this.transportNetwork = transportNetwork;
+		this.transitSchedule = transitSchedule;
+		this.scorer = scorer;
+		this.xyToLatLon = xyToLonLat;
+		this.latLonToXY = lonLatToXY;
+		this.day = day;
+		this.timezone = timezone;
+	}
+
+	/**
+	 * Creates a profile request for R5
+	 * 
+	 * - no direct walk is allowed - access and egree only through "walk"
+	 * 
+	 * @param fromFacility
+	 *            Start facility of trip.
+	 * @param toFacility
+	 *            End facility of trip
+	 * @param departureTime
+	 *            in seconds
+	 * @param departureTimeOffset
+	 *            defines the search space starting from departureTime (in seconds)
+	 */
+	private ProfileRequest prepareProfileRequest(Facility<?> fromFacility, Facility<?> toFacility, double departureTime) {
 		ProfileRequest profileRequest = new ProfileRequest();
-		
-		Coord fromCoord = xyToLonLat.transform(fromFacility.getCoord());
-		Coord toCoord = xyToLonLat.transform(toFacility.getCoord());
-		
-		// TODO: Or should we set the same value?
+
+		Coord fromCoord = xyToLatLon.transform(fromFacility.getCoord());
+		Coord toCoord = xyToLatLon.transform(toFacility.getCoord());
+
 		String startTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
-		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime + 60), timezone);
-		
+		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
+
 		profileRequest.zoneId = transportNetwork.getTimeZone();
-		profileRequest.fromLat = fromCoord.getX();
-		profileRequest.fromLon = fromCoord.getY();
-		profileRequest.toLat = toCoord.getX();
-		profileRequest.toLon = toCoord.getY();
-		profileRequest.wheelchair = false;
-		profileRequest.bikeTrafficStress = 4;
+		profileRequest.fromLat = fromCoord.getY();
+		profileRequest.fromLon = fromCoord.getX();
+		profileRequest.toLat = toCoord.getY();
+		profileRequest.toLon = toCoord.getX();
 		profileRequest.setTime(startTimestamp, endTimestamp);
-		
+
 		profileRequest.directModes = EnumSet.noneOf(LegMode.class); // No direct walk
-		profileRequest.transitModes = EnumSet.of(TransitModes.TRAM,TransitModes.RAIL,TransitModes.BUS);
+		profileRequest.transitModes = EnumSet.allOf(TransitModes.class);
 		profileRequest.accessModes = EnumSet.of(LegMode.WALK);
 		profileRequest.egressModes = EnumSet.of(LegMode.WALK);
-		
+
+		return profileRequest;
+	}
+
+	/**
+	 * Verify that R5 schedule is compatible with MATSim
+	 * 
+	 * - Max. one access/egress leg - Min. one transit leg - Access/egress/transfer
+	 * 
+	 * @param option
+	 *            from R5
+	 */
+	private void verify(ProfileOption option) {
+		if (option.access.size() > 1) {
+			throw new IllegalStateException("More than one access segment");
+		}
+
+		if (option.transit.size() == 0) {
+			throw new IllegalStateException("No transit segment");
+		}
+
+		if (option.egress.size() > 1) {
+			throw new IllegalStateException("More than one egress segment");
+		}
+
+		if (option.access.size() == 1 && !option.access.get(0).mode.equals(LegMode.WALK)) {
+			throw new IllegalStateException("Only WALK is allowed for access");
+		}
+
+		if (option.egress.size() == 1 && !option.egress.get(0).mode.equals(LegMode.WALK)) {
+			throw new IllegalStateException("Only WALK is allowed for egress");
+		}
+	}
+
+	/**
+	 * Returns a TransitStopFacility for an R5 stop
+	 * 
+	 * - Right not it is created on the fly with the respective coordinates -
+	 * Eventually this should be cached / transit stops should be explicitly
+	 * attached to links
+	 * 
+	 * @param stop
+	 */
+	private TransitStopFacility getStopFacility(Stop stop) {
+		// TODO: Cache this somehow and ideally associate a R5 stop with a MATSim link
+		Id<TransitStopFacility> stopId = Id.create(stop.stopId, TransitStopFacility.class);
+		return transitSchedule.getFacilities().get(stopId);
+	}
+
+	/**
+	 * Returns the distance of a R5 trip from one stop to another
+	 * 
+	 * - Right now the CROWFLY distance is computed - Eventually this should become
+	 * a routed distance
+	 * 
+	 * @param fromStop
+	 *            from R5
+	 * @param toStop
+	 *            from R5
+	 * @param routeIndex
+	 *            from R5
+	 */
+	private double getRouteDistance(Stop fromStop, Stop toStop, int routeIndex) {
+		// TODO: Eventually, this should become a routed distance!
+		Coord fromCoord = latLonToXY.transform(new Coord(fromStop.lat, fromStop.lon));
+		Coord toCoord = latLonToXY.transform(new Coord(toStop.lat, toStop.lon));
+		return CoordUtils.calcEuclideanDistance(fromCoord, toCoord);
+	}
+
+	/**
+	 * Transforms an R5 itinerary into a chain of MATSim legs
+	 * 
+	 * @param fromFacility
+	 *            Start facility
+	 * @param toFacility
+	 *            End facility
+	 * @param departureTime
+	 *            in seconds of day
+	 * @param option
+	 *            from R5
+	 * @param itinerary
+	 *            fromR5
+	 * @return
+	 */
+	private List<Leg> transformToLegs(Facility<?> fromFacility, Facility<?> toFacility, double departureTime,
+			ProfileOption option, Itinerary itinerary) {
+		List<Leg> plan = new LinkedList<>();
+		verify(option);
+
+		// Add access walk
+		if (option.access.size() == 1) {
+			StreetSegment segment = option.access.get(0);
+
+			Stop accessStop = option.transit.get(0).from;
+			Facility<?> accessFacility = getStopFacility(accessStop);
+
+			Leg leg = PopulationUtils.createLeg("transit_walk");
+			leg.setDepartureTime(departureTime);
+			leg.setTravelTime(segment.duration);
+
+			Route route = new GenericRouteImpl(fromFacility.getLinkId(), accessFacility.getLinkId());
+			route.setDistance(((double) segment.distance) / 1e6);
+			route.setTravelTime(segment.duration);
+
+			leg.setRoute(route);
+			plan.add(leg);
+		}
+
+		Route previousTransferRoute = null;
+
+		// Add transit segments
+		for (int i = 0; i < option.transit.size(); i++) {
+			int patternIndex = itinerary.connection.transit.get(i).pattern;
+			int timeIndex = itinerary.connection.transit.get(i).time;
+
+			TransitSegment segment = option.transit.get(i);
+			SegmentPattern pattern = option.transit.get(i).segmentPatterns.get(patternIndex);
+
+			double segmentDepartureTime = pattern.fromDepartureTime.get(timeIndex).get(ChronoField.SECOND_OF_DAY);
+			double segmentArrivalTime = pattern.toArrivalTime.get(timeIndex).get(ChronoField.SECOND_OF_DAY);
+			double segmentTravelTime = segmentArrivalTime - segmentDepartureTime;
+
+			TransitStopFacility departureFacility = getStopFacility(segment.from);
+			TransitStopFacility arrivalFacility = getStopFacility(segment.to);
+
+			Leg leg = PopulationUtils.createLeg("pt");
+			leg.setDepartureTime(segmentDepartureTime);
+			leg.setTravelTime(segmentTravelTime);
+			
+			Id<TransitLine> lineId = Id.create(pattern.patternId, TransitLine.class);
+			Id<TransitRoute> routeId = Id.create(segment.routes.get(pattern.routeIndex).shortName, TransitRoute.class);
+			
+			ExperimentalTransitRoute route = new ExperimentalTransitRoute(departureFacility, arrivalFacility, lineId, routeId);
+
+			//Route route = new GenericRouteImpl(departureFacility.getLinkId(), arrivalFacility.getLinkId());
+			route.setDistance(getRouteDistance(segment.from, segment.to, pattern.routeIndex));
+			route.setTravelTime(segmentTravelTime);
+			//route.setRouteDescription(segment.from.name + " --- (" + segment.routes.get(pattern.routeIndex).shortName + ") ---> " + segment.to.name);
+
+			leg.setRoute(route);
+			plan.add(leg);
+
+			if (previousTransferRoute != null) {
+				previousTransferRoute.setEndLinkId(departureFacility.getLinkId());
+				previousTransferRoute = null;
+			}
+
+			if (segment.middle != null) {
+				Leg transferLeg = PopulationUtils.createLeg("transit_walk");
+				transferLeg.setDepartureTime(segmentDepartureTime + segmentTravelTime);
+				transferLeg.setTravelTime(segment.middle.duration);
+
+				Route transferRoute = new GenericRouteImpl(arrivalFacility.getLinkId(), null);
+				transferRoute.setTravelTime(segment.middle.duration);
+				transferRoute.setDistance(((double) segment.middle.distance) / 1e6);
+
+				transferLeg.setRoute(transferRoute);
+				plan.add(transferLeg);
+
+				previousTransferRoute = transferRoute;
+			}
+		}
+
+		// Add egress walk
+		if (option.egress.size() == 1) {
+			StreetSegment segment = option.egress.get(0);
+
+			Stop egressStop = option.transit.get(option.transit.size() - 1).to;
+			Facility<?> egressFacility = getStopFacility(egressStop);
+
+			Leg leg = PopulationUtils.createLeg("transit_walk");
+			leg.setDepartureTime(departureTime);
+			leg.setTravelTime(segment.duration);
+
+			Route route = new GenericRouteImpl(egressFacility.getLinkId(), toFacility.getLinkId());
+			route.setDistance(((double) segment.distance) / 1e6);
+			route.setTravelTime(segment.duration);
+
+			leg.setRoute(route);
+			plan.add(leg);
+		}
+
+		return plan;
+	}
+
+	/**
+	 * Calculates a chain of MATSim legs for a given PT OD relation
+	 * 
+	 * Uses R5 to find a set of viable itineraries and selects the one that scores best
+	 * 
+	 * @param fromFacility
+	 *            Start facility
+	 * @param toFacility
+	 *            End facility
+	 * @param departureTime
+	 *            in seconds of day
+	 * @param person
+	 *            not used right now
+	 */
+	public List<Leg> calcRoute(Facility<?> fromFacility, Facility<?> toFacility, double departureTime, Person person) {
+		PointToPointQuery query = new PointToPointQuery(transportNetwork);
+
+		ProfileRequest profileRequest = prepareProfileRequest(fromFacility, toFacility, departureTime);
 		ProfileResponse response = query.getPlan(profileRequest);
-		
-		Itinerary quickestItinery = null;
-		double quickestItineryEndTime = Integer.MAX_VALUE;
-		
-		for (ProfileOption option : response.options) {
+
+		// Find quickest connection (soonest arrival time)
+		ProfileOption selectedOption = null;
+		Itinerary selectedItinerary = null;
+		double selectedScore = Double.NEGATIVE_INFINITY;
+
+		for (ProfileOption option : response.getOptions()) {
 			for (Itinerary itinerary : option.itinerary) {
-				double endTime = itinerary.endTime.getHour() * 3600.0 + itinerary.endTime.getMinute() * 60.0 + itinerary.endTime.getSecond();
-				
-				if (endTime < quickestItineryEndTime) {
-					quickestItinery = itinerary;
-					quickestItineryEndTime = endTime;
+				double score = scorer.scoreItinerary(itinerary);
+
+				if (score > selectedScore) {
+					selectedScore = score;
+					selectedOption = option;
+					selectedItinerary = itinerary;
 				}
 			}
 		}
-		
-		if (quickestItinery == null) {
-			throw new IllegalStateException();
+
+		if (selectedOption != null) {
+			return transformToLegs(fromFacility, toFacility, departureTime, selectedOption, selectedItinerary);
 		}
-		
-		option.
-		
-		PointToPointConnection connection = quickestItinery.connection;
-		connection.
-		
-		for (PointquickestItinery.connection)
-		
-		return null;
-	}*/
+
+		return null; // No route found
+	}
 }

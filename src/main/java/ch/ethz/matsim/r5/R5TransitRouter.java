@@ -225,6 +225,8 @@ public class R5TransitRouter implements TransitRouter {
 			ProfileOption option, Itinerary itinerary) {
 		List<Leg> plan = new LinkedList<>();
 		verify(option);
+		
+		double currentTime = departureTime;
 
 		// Add access walk
 		if (option.access.size() == 1) {
@@ -237,16 +239,16 @@ public class R5TransitRouter implements TransitRouter {
 			leg.setDepartureTime(departureTime);
 			leg.setTravelTime(segment.duration);
 
-			Route route = new GenericRouteImpl(fromFacility.getLinkId(), accessFacility.getLinkId());
+			Route route = new GenericRouteImpl(null, null); //fromFacility.getLinkId(), accessFacility.getLinkId());
 			route.setDistance(((double) segment.distance) / 1e6);
 			route.setTravelTime(segment.duration);
 
 			leg.setRoute(route);
 			plan.add(leg);
+			currentTime = leg.getDepartureTime() + leg.getTravelTime();
 		}
 
 		Route previousTransferRoute = null;
-
 		// Add transit segments
 		for (int i = 0; i < option.transit.size(); i++) {
 			int patternIndex = itinerary.connection.transit.get(i).pattern;
@@ -278,6 +280,8 @@ public class R5TransitRouter implements TransitRouter {
 
 			leg.setRoute(route);
 			plan.add(leg);
+			
+			currentTime = leg.getDepartureTime() + leg.getTravelTime();
 
 			if (previousTransferRoute != null) {
 				previousTransferRoute.setEndLinkId(departureFacility.getLinkId());
@@ -295,6 +299,7 @@ public class R5TransitRouter implements TransitRouter {
 
 				transferLeg.setRoute(transferRoute);
 				plan.add(transferLeg);
+				currentTime = leg.getDepartureTime() + leg.getTravelTime();
 
 				previousTransferRoute = transferRoute;
 			}
@@ -308,16 +313,19 @@ public class R5TransitRouter implements TransitRouter {
 			Facility<?> egressFacility = getStopFacility(egressStop);
 
 			Leg leg = PopulationUtils.createLeg("transit_walk");
-			leg.setDepartureTime(departureTime);
+			leg.setDepartureTime(currentTime);
 			leg.setTravelTime(segment.duration);
 
-			Route route = new GenericRouteImpl(egressFacility.getLinkId(), toFacility.getLinkId());
+			Route route = new GenericRouteImpl(null, null); //egressFacility.getLinkId(), toFacility.getLinkId());
 			route.setDistance(((double) segment.distance) / 1e6);
 			route.setTravelTime(segment.duration);
 
 			leg.setRoute(route);
 			plan.add(leg);
 		}
+		
+		plan.get(0).setDepartureTime(departureTime);
+		plan.get(0).setTravelTime(itinerary.endTime.get(ChronoField.SECOND_OF_DAY));
 
 		return plan;
 	}
@@ -360,6 +368,7 @@ public class R5TransitRouter implements TransitRouter {
 		}
 
 		if (selectedOption != null) {
+			System.out.println(Time.writeTime(selectedItinerary.duration));
 			return transformToLegs(fromFacility, toFacility, departureTime, selectedOption, selectedItinerary);
 		}
 

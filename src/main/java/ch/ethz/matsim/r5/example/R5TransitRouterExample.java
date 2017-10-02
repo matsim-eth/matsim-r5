@@ -35,6 +35,9 @@ import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
 import com.conveyal.r5.transit.TransportNetwork;
 
 import ch.ethz.matsim.r5.R5TransitRouter;
+import ch.ethz.matsim.r5.distance.CrowflyDistanceEstimator;
+import ch.ethz.matsim.r5.distance.DistanceEstimator;
+import ch.ethz.matsim.r5.route.R5Leg;
 import ch.ethz.matsim.r5.scoring.R5ItineraryScorer;
 import ch.ethz.matsim.r5.scoring.SoonestArrivalTimeScorer;
 import ch.ethz.matsim.r5.utils.R5Cleaner;
@@ -50,41 +53,23 @@ public class R5TransitRouterExample {
 		TransportNetwork transportNetwork = TransportNetwork.read(new File(path));
 		new R5Cleaner(transportNetwork).run();
 
-		CoordToLatLonTransformation coordToLatLon = new DefaultCoordToLatLon(new CH1903LV03PlustoWGS84());
-		LatLonToCoordTransformation latLonToCoord = new DefaultLatLonToCoord(new WGS84toCH1903LV03Plus());
-
-		TransitScheduleFactory scheduleFactory = new TransitScheduleFactoryImpl();
-		TransitSchedule schedule = scheduleFactory.createTransitSchedule();
-
-		R5ItineraryScorer scorer = new SoonestArrivalTimeScorer();
-
 		String day = "2017-09-25";
 		String timezone = "+02:00";
+		
+		LatLonToCoordTransformation latLonToCoord = new DefaultLatLonToCoord(new WGS84toCH1903LV03Plus());
+		R5ItineraryScorer scorer = new SoonestArrivalTimeScorer();
+		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord);
+		R5TransitRouter router = new R5TransitRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
 
-		R5TransitRouter router = new R5TransitRouter(transportNetwork, schedule, scorer, coordToLatLon, latLonToCoord,
-				day, timezone);
-
-		Network network = NetworkUtils.createNetwork();
-
-		Node startNode = network.getFactory().createNode(Id.createNodeId("start"),
-				latLonToCoord.transform(new LatLon(47.384868612482634, 8.495950698852539)));
-		Node endNode = network.getFactory().createNode(Id.createNodeId("end"),
-				latLonToCoord.transform(new LatLon(47.39974354712813, 8.465995788574219)));
-
-		Link startLink = network.getFactory().createLink(Id.createLinkId("start"), startNode, startNode);
-		Link endLink = network.getFactory().createLink(Id.createLinkId("end"), endNode, endNode);
-
-		LinkWrapperFacility fromFacility = new LinkWrapperFacility(startLink);
-		LinkWrapperFacility toFacility = new LinkWrapperFacility(endLink);
-
+		LatLon fromLocation = new LatLon(47.384868612482634, 8.495950698852539);
+		LatLon toLocation = new LatLon(47.39974354712813, 8.465995788574219);
 		double departureTime = 8.0 * 3600.0;
 
-		List<Leg> route = router.calcRoute(fromFacility, toFacility, departureTime, null);
+		List<R5Leg> route = router.calcRoute(fromLocation, toLocation, departureTime, null);
 
-		for (Leg leg : route) {
-			System.out.println(String.format("Mode: %s, Start: %s, Duration: %s, %s", leg.getMode(),
-					Time.writeTime(leg.getDepartureTime()), Time.writeTime(leg.getTravelTime()),
-					leg.getRoute().getRouteDescription()));
+		for (R5Leg leg : route) {
+			System.out.println(String.format("Mode: %s, Start: %s, Duration: %s", leg.getClass().toString(),
+					Time.writeTime(leg.getDepartureTime()), Time.writeTime(leg.getTravelTime())));
 		}
 	}
 }

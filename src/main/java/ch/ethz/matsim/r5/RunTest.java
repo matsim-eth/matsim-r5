@@ -157,6 +157,7 @@ public class RunTest {
 				arrivalTime += itinerary.endTime.getSecond();
 
 				System.out.println("   Arrival time: " + Time.writeTime(arrivalTime));
+				System.out.println("   Stages: " + option.transit.size());
 
 				for (int stageIndex = 0; stageIndex < option.transit.size(); stageIndex++) {
 					int patternIndex = itinerary.connection.transit.get(stageIndex).pattern;
@@ -174,10 +175,10 @@ public class RunTest {
 							Time.writeTime(stageDepartureTime), arrivalStop.name, Time.writeTime(stageArrivalTime)));
 
 					if (option.transit.get(stageIndex).middle == null) {
-						System.out.println("      No middle.");
+						System.out.println("         No middle.");
 					} else {
 						StreetSegment middle = option.transit.get(stageIndex).middle;
-						System.err.println("      Middle: " + middle.mode + " "
+						System.out.println("         Middle: " + middle.mode + " "
 								+ middle.streetEdges.stream().mapToDouble(e -> e.distance).sum());
 					}
 				}

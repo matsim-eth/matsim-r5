@@ -5,7 +5,6 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.matsim.api.core.v01.population.Person;
 import org.matsim.core.utils.misc.Time;
 
 import com.conveyal.r5.api.ProfileResponse;
@@ -33,7 +32,7 @@ import ch.ethz.matsim.r5.utils.spatial.LatLon;
 /**
  * R5 Transit Router for MATSim
  * 
- * - Currently transit routes are not related to the MATSim network - Distances
+ * Currently transit routes are not related to the MATSim network - Distances
  * are crowfly distances, while travel times are routed according to schedule
  * 
  * @author Sebastian Hörl <sebastian.hoerl@ivt.baug.ethz.ch>
@@ -51,14 +50,10 @@ public class R5TransitRouter {
 	 * 
 	 * @param transportNetwork
 	 *            R5 TransportNetwork instance
-	 * @param transitSchedule
-	 *            MATSim transit schedule with R5 stop ids included
 	 * @param scorer
 	 *            Scores the obtained routes for selection
-	 * @param coordToLonLat
-	 *            Transformation from MATSim (x,y) to longitude/latitude
-	 * @param lonLatToCoord
-	 *            Transformaton from longitude/latitude to MATSim (x,y)
+	 * @param distanceEstimator
+	 *            Estimates the distance for a stop relation
 	 * @param day
 	 *            Selected day of the transit schedule, given as a string in
 	 *            YYYY-MM-DD
@@ -78,16 +73,17 @@ public class R5TransitRouter {
 	/**
 	 * Creates a profile request for R5
 	 * 
-	 * - no direct walk is allowed - access and egree only through "walk"
+	 * <ul>
+	 * <li>no direct walk is allowed
+	 * <li>access and egress only through "walk"
+	 * </ul>
 	 * 
-	 * @param fromFacility
-	 *            Start facility of trip.
-	 * @param toFacility
-	 *            End facility of trip
+	 * @param fromLocation
+	 *            Start location of trip.
+	 * @param toLocation
+	 *            End location of trip
 	 * @param departureTime
 	 *            in seconds
-	 * @param departureTimeOffset
-	 *            defines the search space starting from departureTime (in seconds)
 	 */
 	private ProfileRequest prepareProfileRequest(LatLon fromLocation, LatLon toLocation, double departureTime) {
 		ProfileRequest profileRequest = new ProfileRequest();
@@ -114,7 +110,11 @@ public class R5TransitRouter {
 	/**
 	 * Verify that R5 schedule is compatible with MATSim
 	 * 
-	 * - Max. one access/egress leg - Min. one transit leg - Access/egress/transfer
+	 * <ul>
+	 * <li>Max. one access/egress leg
+	 * <li>Min. one transit leg
+	 * <li>Access/egress/transfer
+	 * </ul>
 	 * 
 	 * @param option
 	 *            from R5
@@ -150,12 +150,12 @@ public class R5TransitRouter {
 	}
 
 	/**
-	 * Transforms an R5 itinerary into a chain of MATSim legs
+	 * Returns an R5 itinerary as a chain of legs
 	 * 
-	 * @param fromFacility
-	 *            Start facility
-	 * @param toFacility
-	 *            End facility
+	 * @param fromLocation
+	 *            Start location
+	 * @param toLocation
+	 *            End location
 	 * @param departureTime
 	 *            in seconds of day
 	 * @param option
@@ -164,8 +164,8 @@ public class R5TransitRouter {
 	 *            fromR5
 	 * @return
 	 */
-	private List<R5Leg> transformToLegs(LatLon fromLocation, LatLon toLocation, double departureTime,
-			ProfileOption option, Itinerary itinerary) {
+	private List<R5Leg> route(LatLon fromLocation, LatLon toLocation, double departureTime, ProfileOption option,
+			Itinerary itinerary) {
 		List<R5Leg> plan = new LinkedList<>();
 		verify(option);
 
@@ -276,21 +276,20 @@ public class R5TransitRouter {
 	}
 
 	/**
-	 * Calculates a chain of MATSim legs for a given PT OD relation
+	 * Calculates a chain of legs for a given PT OD relation
 	 * 
 	 * Uses R5 to find a set of viable itineraries and selects the one that scores
 	 * best
 	 * 
-	 * @param fromFacility
-	 *            Start facility
-	 * @param toFacility
-	 *            End facility
+	 * @param fromLocation
+	 *            Start location
+	 * @param toLocation
+	 *            End location
 	 * @param departureTime
 	 *            in seconds of day
-	 * @param person
-	 *            not used right now
+	 * @return May return null if no route is found
 	 */
-	public List<R5Leg> calcRoute(LatLon fromLocation, LatLon toLocation, double departureTime, Person person) {
+	public List<R5Leg> route(LatLon fromLocation, LatLon toLocation, double departureTime) {
 		PointToPointQuery query = new PointToPointQuery(transportNetwork);
 
 		ProfileRequest profileRequest = prepareProfileRequest(fromLocation, toLocation, departureTime);
@@ -314,7 +313,7 @@ public class R5TransitRouter {
 		}
 
 		if (selectedOption != null) {
-			return transformToLegs(fromLocation, toLocation, departureTime, selectedOption, selectedItinerary);
+			return route(fromLocation, toLocation, departureTime, selectedOption, selectedItinerary);
 		}
 
 		return null; // No route found

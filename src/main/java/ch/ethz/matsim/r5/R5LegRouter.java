@@ -37,7 +37,7 @@ import ch.ethz.matsim.r5.utils.spatial.LatLon;
  * 
  * @author Sebastian Hörl <sebastian.hoerl@ivt.baug.ethz.ch>
  */
-public class R5TransitRouter {
+public class R5LegRouter {
 	final private TransportNetwork transportNetwork;
 	final private R5ItineraryScorer scorer;
 	final private DistanceEstimator distanceEstimator;
@@ -61,7 +61,7 @@ public class R5TransitRouter {
 	 *            Selected timezone in which departure times are given (should match
 	 *            the schedule input), given e.g. as +02:00
 	 */
-	public R5TransitRouter(TransportNetwork transportNetwork, R5ItineraryScorer scorer,
+	public R5LegRouter(TransportNetwork transportNetwork, R5ItineraryScorer scorer,
 			DistanceEstimator distanceEstimator, String day, String timezone) {
 		this.distanceEstimator = distanceEstimator;
 		this.transportNetwork = transportNetwork;

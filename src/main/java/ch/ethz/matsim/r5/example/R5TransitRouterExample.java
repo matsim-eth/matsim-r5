@@ -8,7 +8,7 @@ import org.matsim.core.utils.misc.Time;
 
 import com.conveyal.r5.transit.TransportNetwork;
 
-import ch.ethz.matsim.r5.R5TransitRouter;
+import ch.ethz.matsim.r5.R5LegRouter;
 import ch.ethz.matsim.r5.distance.CrowflyDistanceEstimator;
 import ch.ethz.matsim.r5.distance.DistanceEstimator;
 import ch.ethz.matsim.r5.route.R5Leg;
@@ -31,7 +31,7 @@ public class R5TransitRouterExample {
 		LatLonToCoordTransformation latLonToCoord = new DefaultLatLonToCoord(new WGS84toCH1903LV03Plus());
 		R5ItineraryScorer scorer = new SoonestArrivalTimeScorer();
 		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord);
-		R5TransitRouter router = new R5TransitRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
+		R5LegRouter router = new R5LegRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
 
 		LatLon fromLocation = new LatLon(47.384868612482634, 8.495950698852539);
 		LatLon toLocation = new LatLon(47.39974354712813, 8.465995788574219);

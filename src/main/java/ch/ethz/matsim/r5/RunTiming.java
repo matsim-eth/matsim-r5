@@ -48,7 +48,7 @@ public class RunTiming {
 
 		R5ItineraryScorer scorer = new SoonestArrivalTimeScorer();
 		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord);
-		R5TransitRouter router = new R5TransitRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
+		R5LegRouter router = new R5LegRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
 
 		BufferedReader reader = new BufferedReader(
 				new InputStreamReader(new FileInputStream("/home/sebastian/temp/od_pairs.csv")));

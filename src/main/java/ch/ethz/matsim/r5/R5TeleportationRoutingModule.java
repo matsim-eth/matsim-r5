@@ -17,6 +17,7 @@ import org.matsim.core.router.RoutingModule;
 import org.matsim.core.router.StageActivityTypes;
 import org.matsim.core.router.StageActivityTypesImpl;
 import org.matsim.core.router.TripRouter;
+import org.matsim.core.utils.misc.Time;
 import org.matsim.facilities.Facility;
 
 import ch.ethz.matsim.r5.matsim.R5Module;
@@ -87,7 +88,8 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 		try {
 			legs = router.route(fromLocation, toLocation, departureTime, person);
 		} catch (Exception e) {
-			R5Module.logger.error(String.format("Error in R5: Person: %s, From: %s, To: %s", person.getId().toString(), fromFacility.getLinkId(), toFacility.getLinkId()));
+			R5Module.logger.error(String.format("Error in R5: Person: %s, From: %s, To: %s, Time: %s", person == null ? "null" : person.getId().toString(), fromFacility.getLinkId(), toFacility.getLinkId(), Time.writeTime(departureTime)));
+			R5Module.logger.error("From: " + fromLocation + " , To: " + toLocation + " , Time : " + departureTime);
 			throw e;
 		}
 		

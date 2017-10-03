@@ -2,6 +2,8 @@ package ch.ethz.matsim.r5.example;
 
 import java.io.File;
 import java.util.List;
+
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Activity;
@@ -57,11 +59,9 @@ public class R5TeleportationExample {
 		
 		RoutingModule routingModule = new R5TeleportationRoutingModule(router, coordToLatLon, latLonToCoord, null, linkFinder);
 
-		Facility<?> fromFacility = new FakeFacility(
-				latLonToCoord.transform(new LatLon(47.384868612482634, 8.495950698852539)));
-		Facility<?> toFacility = new FakeFacility(
-				latLonToCoord.transform(new LatLon(47.39974354712813, 8.465995788574219)));
-		double departureTime = 8.0 * 3600.0;
+		Facility<?> fromFacility = new FakeFacility(new Coord(2721239.0, 1236409.0));
+		Facility<?> toFacility = new FakeFacility(new Coord(2563424.0, 1208527.0));
+		double departureTime = Time.parseTime("17:12:38");
 
 		List<? extends PlanElement> plan = routingModule.calcRoute(fromFacility, toFacility, departureTime, null);
 

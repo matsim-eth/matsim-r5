@@ -265,7 +265,7 @@ public class R5LegRouter {
 				+ plan.get(plan.size() - 1).getTravelTime();
 
 		if (reconstructedEndTime != expectedEndTime) {
-			R5Module.logger.error(String.format("Person: %s, Expected: %s, Found: %s", person.getId().toString(), Time.writeTime(expectedEndTime), Time.writeTime(reconstructedEndTime)));
+			R5Module.logger.error(String.format("Person: %s, Expected: %s, Found: %s", person == null ? "null" : person.getId().toString(), Time.writeTime(expectedEndTime), Time.writeTime(reconstructedEndTime)));
 			throw new IllegalStateException("End time has not been reconstructed properly");
 		}
 

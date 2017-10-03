@@ -19,6 +19,7 @@ import org.matsim.core.router.StageActivityTypesImpl;
 import org.matsim.core.router.TripRouter;
 import org.matsim.facilities.Facility;
 
+import ch.ethz.matsim.r5.matsim.R5Module;
 import ch.ethz.matsim.r5.route.LinkFinder;
 import ch.ethz.matsim.r5.route.R5AccessLeg;
 import ch.ethz.matsim.r5.route.R5EgressLeg;
@@ -81,7 +82,14 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 		LatLon fromLocation = coordToLatLon.transform(fromFacility.getCoord());
 		LatLon toLocation = coordToLatLon.transform(toFacility.getCoord());
 
-		List<R5Leg> legs = router.route(fromLocation, toLocation, departureTime, person);
+		List<R5Leg> legs;
+		
+		try {
+			legs = router.route(fromLocation, toLocation, departureTime, person);
+		} catch (Exception e) {
+			R5Module.logger.error(String.format("Error in R5: Person: %s, From: %s, To: %s", person.getId().toString(), fromFacility.getLinkId(), toFacility.getLinkId()));
+			throw e;
+		}
 		
 		if (legs != null) {
 			List<PlanElement> matsimPlan = new ArrayList<>(legs.size());

@@ -81,7 +81,7 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 		LatLon fromLocation = coordToLatLon.transform(fromFacility.getCoord());
 		LatLon toLocation = coordToLatLon.transform(toFacility.getCoord());
 
-		List<R5Leg> legs = router.route(fromLocation, toLocation, departureTime);
+		List<R5Leg> legs = router.route(fromLocation, toLocation, departureTime, person);
 		
 		if (legs != null) {
 			List<PlanElement> matsimPlan = new ArrayList<>(legs.size());

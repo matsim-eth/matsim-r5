@@ -37,7 +37,7 @@ public class R5LegRouterExample {
 		LatLon toLocation = new LatLon(47.39974354712813, 8.465995788574219);
 		double departureTime = 8.0 * 3600.0;
 
-		List<R5Leg> route = router.route(fromLocation, toLocation, departureTime);
+		List<R5Leg> route = router.route(fromLocation, toLocation, departureTime, null);
 
 		for (R5Leg leg : route) {
 			System.out.println(String.format("Mode: %s, Start: %s, Duration: %s", leg.getClass().toString(),

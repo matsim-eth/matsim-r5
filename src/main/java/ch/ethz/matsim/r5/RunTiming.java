@@ -72,7 +72,7 @@ public class RunTiming {
 				@Override
 				public Result call() {
 					List<R5Leg> legs = router.route(coordToLatLon.transform(startCoord),
-							coordToLatLon.transform(endCoord), departureTime);
+							coordToLatLon.transform(endCoord), departureTime, null);
 
 					if (legs == null) {
 						return new Result(id);

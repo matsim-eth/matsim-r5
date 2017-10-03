@@ -5,6 +5,7 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.matsim.api.core.v01.population.Person;
 import org.matsim.core.utils.misc.Time;
 
 import com.conveyal.r5.api.ProfileResponse;
@@ -21,6 +22,7 @@ import com.conveyal.r5.profile.ProfileRequest;
 import com.conveyal.r5.transit.TransportNetwork;
 
 import ch.ethz.matsim.r5.distance.DistanceEstimator;
+import ch.ethz.matsim.r5.matsim.R5Module;
 import ch.ethz.matsim.r5.route.R5AccessLeg;
 import ch.ethz.matsim.r5.route.R5EgressLeg;
 import ch.ethz.matsim.r5.route.R5Leg;
@@ -169,7 +171,7 @@ public class R5LegRouter {
 	 * @return
 	 */
 	private List<R5Leg> route(LatLon fromLocation, LatLon toLocation, double departureTime, ProfileOption option,
-			Itinerary itinerary) {
+			Itinerary itinerary, Person person) {
 		List<R5Leg> plan = new LinkedList<>();
 		verify(option);
 
@@ -256,11 +258,14 @@ public class R5LegRouter {
 		while (expectedStartTime < departureTime)
 			expectedStartTime += 3600.0 * 24.0;
 		double expectedEndTime = itinerary.endTime.get(ChronoField.SECOND_OF_DAY);
-		while (expectedEndTime < expectedStartTime)
+		while (expectedEndTime < expectedStartTime && expectedEndTime < departureTime)
 			expectedEndTime += 3600.0 * 24.0;
+		
+		double reconstructedEndTime = plan.get(plan.size() - 1).getDepartureTime()
+				+ plan.get(plan.size() - 1).getTravelTime();
 
-		if (plan.get(plan.size() - 1).getDepartureTime()
-				+ plan.get(plan.size() - 1).getTravelTime() != expectedEndTime) {
+		if (reconstructedEndTime != expectedEndTime) {
+			R5Module.logger.error(String.format("Person: %s, Expected: %s, Found: %s", person.getId().toString(), Time.writeTime(expectedEndTime), Time.writeTime(reconstructedEndTime)));
 			throw new IllegalStateException("End time has not been reconstructed properly");
 		}
 
@@ -293,7 +298,7 @@ public class R5LegRouter {
 	 *            in seconds of day
 	 * @return May return null if no route is found
 	 */
-	public List<R5Leg> route(LatLon fromLocation, LatLon toLocation, double departureTime) {
+	public List<R5Leg> route(LatLon fromLocation, LatLon toLocation, double departureTime, Person person) {
 		try {
 			PointToPointQuery query = new PointToPointQuery(transportNetwork);
 			ProfileRequest profileRequest = prepareProfileRequest(fromLocation, toLocation, departureTime);
@@ -317,7 +322,7 @@ public class R5LegRouter {
 			}
 
 			if (selectedOption != null) {
-				return route(fromLocation, toLocation, departureTime, selectedOption, selectedItinerary);
+				return route(fromLocation, toLocation, departureTime, selectedOption, selectedItinerary, person);
 			}
 		} catch (IllegalStateException e) {
 			if (!e.getMessage().contains("No valid itineraries found for path")) {

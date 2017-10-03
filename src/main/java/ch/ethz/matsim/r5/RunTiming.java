@@ -47,7 +47,7 @@ public class RunTiming {
 		CoordToLatLonTransformation coordToLatLon = new DefaultCoordToLatLon(new CH1903LV03PlustoWGS84());
 
 		R5ItineraryScorer scorer = new SoonestArrivalTimeScorer();
-		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord);
+		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord, 1.0);
 		R5LegRouter router = new R5LegRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
 
 		BufferedReader reader = new BufferedReader(

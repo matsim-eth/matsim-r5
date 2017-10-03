@@ -19,7 +19,7 @@ import ch.ethz.matsim.r5.utils.spatial.DefaultLatLonToCoord;
 import ch.ethz.matsim.r5.utils.spatial.LatLon;
 import ch.ethz.matsim.r5.utils.spatial.LatLonToCoordTransformation;
 
-public class R5TransitRouterExample {
+public class R5LegRouterExample {
 	static public void main(String[] args) throws Exception {
 		String path = "/home/sebastian/r5/input/network.dat";
 		TransportNetwork transportNetwork = TransportNetwork.read(new File(path));
@@ -30,7 +30,7 @@ public class R5TransitRouterExample {
 
 		LatLonToCoordTransformation latLonToCoord = new DefaultLatLonToCoord(new WGS84toCH1903LV03Plus());
 		R5ItineraryScorer scorer = new SoonestArrivalTimeScorer();
-		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord);
+		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord, 1.0);
 		R5LegRouter router = new R5LegRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
 
 		LatLon fromLocation = new LatLon(47.384868612482634, 8.495950698852539);

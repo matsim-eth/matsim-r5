@@ -87,6 +87,10 @@ public class R5LegRouter {
 	 */
 	private ProfileRequest prepareProfileRequest(LatLon fromLocation, LatLon toLocation, double departureTime) {
 		ProfileRequest profileRequest = new ProfileRequest();
+		
+		while (departureTime > 24.0 * 3600.0) {
+			departureTime -= 24 * 3600.0;
+		}
 
 		// endTimestamp is +1 sec to avoid aborting
 		String startTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
@@ -178,7 +182,7 @@ public class R5LegRouter {
 			StreetSegment segment = option.access.get(0);
 			Stop accessStop = option.transit.get(0).from;
 
-			R5AccessLeg accessLeg = new R5AccessLeg(departureTime, segment.duration, ((double) segment.distance) / 1e6,
+			R5AccessLeg accessLeg = new R5AccessLeg(departureTime, segment.duration, ((double) segment.distance) / 1e3,
 					fromLocation, getStopLocation(accessStop), getStopId(accessStop));
 			plan.add(accessLeg);
 
@@ -226,7 +230,7 @@ public class R5LegRouter {
 
 			if (segment.middle != null) {
 				R5TransferLeg transferLeg = new R5TransferLeg(currentTime, segment.middle.duration,
-						((double) segment.middle.distance) / 1e6, getStopLocation(segment.to), getStopId(segment.to));
+						((double) segment.middle.distance) / 1e3, getStopLocation(segment.to), getStopId(segment.to));
 				plan.add(transferLeg);
 
 				currentTime += segment.middle.duration;
@@ -239,7 +243,7 @@ public class R5LegRouter {
 			StreetSegment segment = option.egress.get(0);
 			Stop egressStop = option.transit.get(option.transit.size() - 1).to;
 
-			R5EgressLeg egressLeg = new R5EgressLeg(currentTime, segment.duration, ((double) segment.distance) / 1e6,
+			R5EgressLeg egressLeg = new R5EgressLeg(currentTime, segment.duration, ((double) segment.distance) / 1e3,
 					getStopLocation(egressStop), toLocation, getStopId(egressStop));
 			plan.add(egressLeg);
 

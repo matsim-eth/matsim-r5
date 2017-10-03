@@ -1,5 +1,6 @@
 package ch.ethz.matsim.r5;
 
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.EnumSet;
 import java.util.LinkedList;
@@ -93,10 +94,15 @@ public class R5LegRouter {
 		while (departureTime > 24.0 * 3600.0) {
 			departureTime -= 24 * 3600.0;
 		}
-
+		
+		ZonedDateTime departureDateTime = ZonedDateTime.parse(String.format("%sT%s%s", day, Time.writeTime(0.0), timezone));
+		departureDateTime = departureDateTime.plusSeconds((long) departureTime);
+		
 		// endTimestamp is +1 sec to avoid aborting
-		String startTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
-		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime + 3600.0 + 1.0), timezone);
+		ZonedDateTime departureDateTimePlusOne = departureDateTime.plusSeconds(1);
+
+		String startTimestamp = departureDateTime.toString();
+		String endTimestamp = departureDateTimePlusOne.toString();
 
 		profileRequest.zoneId = transportNetwork.getTimeZone();
 		profileRequest.fromLat = fromLocation.getLatitude();

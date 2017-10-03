@@ -110,6 +110,7 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 				matsimPlan.add(matsimLeg);
 	
 				if (previousActivity != null) {
+					previousActivity.setLinkId(startLinkId);
 					previousActivity.setEndTime(leg.getDepartureTime());
 				}
 	
@@ -134,6 +135,6 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 
 	@Override
 	public StageActivityTypes getStageActivityTypes() {
-		return new StageActivityTypesImpl();
+		return new StageActivityTypesImpl("pt interaction");
 	}
 }

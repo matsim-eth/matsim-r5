@@ -23,10 +23,34 @@ import ch.ethz.matsim.sioux_falls.SiouxFallsUtils;
 
 public class SiouxFallsExample {
 	static public void main(String[] args) throws Exception {
-		// Load OSM + GTFS and create R5 network if it does not exist
+		// Download OSM + GTFS and create R5 network if it does not exist yet
 		File dataDirectory = new File("sf-data");
 		File networkPath = new File("sf-data/network.dat");
+		prepareR5(dataDirectory, networkPath);
 
+		// R5 for MATSim setup
+
+		R5ConfigGroup r5Config = new R5ConfigGroup();
+		r5Config.setCoordinateSystem("EPSG:26914");
+		r5Config.setRequestDay("2015-09-22");
+		r5Config.setRequestTimezone("-05:00");
+		r5Config.setNetworkInputPath(networkPath.getAbsolutePath());
+		
+		// Standard MATSim setup
+
+		Config config = ConfigUtils.loadConfig(SiouxFallsUtils.getConfigURL(), r5Config);
+		config.transit().setUseTransit(false);
+		config.global().setNumberOfThreads(8);
+		
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		Controler controler = new Controler(scenario);
+
+		controler.addOverridingModule(new R5Module()); // Add R5 module
+
+		controler.run();
+	}
+	
+	static private void prepareR5(File dataDirectory, File networkPath) throws IOException {
 		if (!networkPath.exists()) {
 			dataDirectory.mkdir();
 
@@ -51,28 +75,5 @@ public class SiouxFallsExample {
 		} else {
 			System.out.println("R5 network exists. Preparation done.");
 		}
-		
-		// TransportNetwork tnet = TransportNetwork.read(networkPath);
-		
-		// R5 for MATSim setup
-
-		R5ConfigGroup r5Config = new R5ConfigGroup();
-		r5Config.setCoordinateSystem("EPSG:26914");
-		r5Config.setRequestDay("2015-09-22");
-		r5Config.setRequestTimezone("-05:00");
-		r5Config.setNetworkInputPath(networkPath.getAbsolutePath());
-		
-		// Standard MATSim setup
-
-		Config config = ConfigUtils.loadConfig(SiouxFallsUtils.getConfigURL(), r5Config);
-		config.transit().setUseTransit(false);
-		config.global().setNumberOfThreads(8);
-		
-		Scenario scenario = ScenarioUtils.loadScenario(config);
-		Controler controler = new Controler(scenario);
-
-		controler.addOverridingModule(new R5Module()); // Add R5 module
-
-		controler.run();
 	}
 }

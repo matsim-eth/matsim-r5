@@ -1,25 +1,20 @@
 package ch.ethz.matsim.r5.example;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
-import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
-import org.matsim.api.core.v01.population.Person;
-import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
-import org.matsim.api.core.v01.population.PopulationFactory;
-import org.matsim.core.population.routes.RouteFactories;
 import org.matsim.core.router.RoutingModule;
-import org.matsim.core.router.TeleportationRoutingModule;
 import org.matsim.core.utils.geometry.transformations.CH1903LV03PlustoWGS84;
 import org.matsim.core.utils.geometry.transformations.WGS84toCH1903LV03Plus;
 import org.matsim.core.utils.misc.Time;
 import org.matsim.facilities.Facility;
-import org.matsim.pt.router.FakeFacility;
 
 import com.conveyal.r5.transit.TransportNetwork;
 
@@ -28,7 +23,6 @@ import ch.ethz.matsim.r5.R5TeleportationRoutingModule;
 import ch.ethz.matsim.r5.distance.CrowflyDistanceEstimator;
 import ch.ethz.matsim.r5.distance.DistanceEstimator;
 import ch.ethz.matsim.r5.route.LinkFinder;
-import ch.ethz.matsim.r5.route.LoopLinkFinder;
 import ch.ethz.matsim.r5.route.UnknownLinkFinder;
 import ch.ethz.matsim.r5.scoring.R5ItineraryScorer;
 import ch.ethz.matsim.r5.scoring.SoonestArrivalTimeScorer;
@@ -56,12 +50,15 @@ public class R5TeleportationExample {
 		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord, beelineDistanceFactor);
 		LinkFinder linkFinder = new UnknownLinkFinder();
 		R5LegRouter router = new R5LegRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
-		
-		RoutingModule routingModule = new R5TeleportationRoutingModule(router, coordToLatLon, latLonToCoord, null, linkFinder);
 
-		Facility<?> fromFacility = new FakeFacility(new Coord(2721239.0, 1236409.0));
-		Facility<?> toFacility = new FakeFacility(new Coord(2563424.0, 1208527.0));
-		double departureTime = Time.parseTime("17:12:38");
+		RoutingModule routingModule = new R5TeleportationRoutingModule(router, coordToLatLon, latLonToCoord, null,
+				linkFinder);
+
+		Facility<?> fromFacility = new FakeFacility(
+				latLonToCoord.transform(new LatLon(46.878275381782174, 8.21909674274457)));
+		Facility<?> toFacility = new FakeFacility(
+				latLonToCoord.transform(new LatLon(46.86166306929253, 8.233059319342907)));
+		double departureTime = 62605.0;
 
 		List<? extends PlanElement> plan = routingModule.calcRoute(fromFacility, toFacility, departureTime, null);
 
@@ -79,6 +76,35 @@ public class R5TeleportationExample {
 								+ "km) " + Time.writeTime(leg.getDepartureTime()) + " -> "
 								+ Time.writeTime(leg.getDepartureTime() + leg.getTravelTime()));
 			}
+		}
+	}
+
+	static public class FakeFacility implements Facility {
+		private Coord coord;
+
+		public FakeFacility(Coord coord) {
+			this.coord = coord;
+		}
+
+		@Override
+		public Coord getCoord() {
+			return this.coord;
+		}
+
+		@Override
+		public Id getId() {
+			return Id.create("unknown", Facility.class);
+		}
+
+		@Override
+		public Map<String, Object> getCustomAttributes() {
+			return Collections.emptyMap();
+		}
+
+		@Override
+		public Id getLinkId() {
+			// TODO Auto-generated method stub
+			return Id.createLinkId("unknown");
 		}
 	}
 }

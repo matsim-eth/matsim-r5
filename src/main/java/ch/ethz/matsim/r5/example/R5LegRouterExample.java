@@ -33,9 +33,9 @@ public class R5LegRouterExample {
 		DistanceEstimator distanceEstimator = new CrowflyDistanceEstimator(latLonToCoord, 1.0);
 		R5LegRouter router = new R5LegRouter(transportNetwork, scorer, distanceEstimator, day, timezone);
 
-		LatLon fromLocation = new LatLon(47.384868612482634, 8.495950698852539);
-		LatLon toLocation = new LatLon(47.39974354712813, 8.465995788574219);
-		double departureTime = 8.0 * 3600.0;
+		LatLon fromLocation = new LatLon(46.878275381782174, 8.21909674274457);
+		LatLon toLocation = new LatLon(46.86166306929253, 8.233059319342907);
+		double departureTime = 62605.0;
 
 		List<R5Leg> route = router.route(fromLocation, toLocation, departureTime, null);
 

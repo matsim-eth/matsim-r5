@@ -96,7 +96,7 @@ public class R5LegRouter {
 
 		// endTimestamp is +1 sec to avoid aborting
 		String startTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime), timezone);
-		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime + 1.0), timezone);
+		String endTimestamp = String.format("%sT%s%s", day, Time.writeTime(departureTime + 3600.0 + 1.0), timezone);
 
 		profileRequest.zoneId = transportNetwork.getTimeZone();
 		profileRequest.fromLat = fromLocation.getLatitude();

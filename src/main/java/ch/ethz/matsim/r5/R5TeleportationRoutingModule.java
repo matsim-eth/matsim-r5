@@ -76,6 +76,8 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 
 		throw new IllegalStateException();
 	}
+	
+	private static int indexOutOfBoundsCount = 0;
 
 	@Override
 	public List<? extends PlanElement> calcRoute(Facility<?> fromFacility, Facility<?> toFacility, double departureTime,
@@ -83,14 +85,24 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 		LatLon fromLocation = coordToLatLon.transform(fromFacility.getCoord());
 		LatLon toLocation = coordToLatLon.transform(toFacility.getCoord());
 
-		List<R5Leg> legs;
+		List<R5Leg> legs = null;
 		
 		try {
 			legs = router.route(fromLocation, toLocation, departureTime, person);
 		} catch (Exception e) {
-			R5Module.logger.error(String.format("Error in R5: Person: %s, From: %s, To: %s, Time: %s", person == null ? "null" : person.getId().toString(), fromFacility.getLinkId(), toFacility.getLinkId(), Time.writeTime(departureTime)));
-			R5Module.logger.error("From: " + fromLocation + " , To: " + toLocation + " , Time : " + departureTime);
-			throw e;
+			if (e instanceof ArrayIndexOutOfBoundsException) {
+				if (indexOutOfBoundsCount++ < 100) {
+					// TODO: Why does this error occur? It is not critical, since we just pretend that there is no 
+					// connection for now ...
+					R5Module.logger.error("ArrayIndexOutOfBoundsException in R5. This is known and should be fixed somehow ...");
+					R5Module.logger.error(String.format("Error in R5: Person: %s, From: %s, To: %s, Time: %s", person == null ? "null" : person.getId().toString(), fromFacility.getLinkId(), toFacility.getLinkId(), Time.writeTime(departureTime)));
+					R5Module.logger.error("From: " + fromLocation + " , To: " + toLocation + " , Time : " + departureTime);
+				}		
+			} else {
+				R5Module.logger.error(String.format("Error in R5: Person: %s, From: %s, To: %s, Time: %s", person == null ? "null" : person.getId().toString(), fromFacility.getLinkId(), toFacility.getLinkId(), Time.writeTime(departureTime)));
+				R5Module.logger.error("From: " + fromLocation + " , To: " + toLocation + " , Time : " + departureTime);
+				throw e;
+			}
 		}
 		
 		if (legs != null) {

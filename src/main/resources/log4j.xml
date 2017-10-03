@@ -7,9 +7,9 @@
 		</layout>
 	</appender>
 
-	<category name="com.conveyal.r5">
+	<!--category name="com.conveyal.r5">
 		<priority value="off" />
-	</category>
+	</category-->
 
 	<root>
 		<appender-ref ref="console" />

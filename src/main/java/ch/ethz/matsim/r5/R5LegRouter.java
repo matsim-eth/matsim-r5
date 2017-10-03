@@ -258,7 +258,7 @@ public class R5LegRouter {
 		while (expectedStartTime < departureTime)
 			expectedStartTime += 3600.0 * 24.0;
 		double expectedEndTime = itinerary.endTime.get(ChronoField.SECOND_OF_DAY);
-		while (expectedEndTime < expectedStartTime && expectedEndTime < departureTime)
+		while (expectedEndTime < expectedStartTime || expectedEndTime < departureTime)
 			expectedEndTime += 3600.0 * 24.0;
 		
 		double reconstructedEndTime = plan.get(plan.size() - 1).getDepartureTime()

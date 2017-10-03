@@ -61,8 +61,8 @@ public class R5LegRouter {
 	 *            Selected timezone in which departure times are given (should match
 	 *            the schedule input), given e.g. as +02:00
 	 */
-	public R5LegRouter(TransportNetwork transportNetwork, R5ItineraryScorer scorer,
-			DistanceEstimator distanceEstimator, String day, String timezone) {
+	public R5LegRouter(TransportNetwork transportNetwork, R5ItineraryScorer scorer, DistanceEstimator distanceEstimator,
+			String day, String timezone) {
 		this.distanceEstimator = distanceEstimator;
 		this.transportNetwork = transportNetwork;
 		this.scorer = scorer;
@@ -87,7 +87,7 @@ public class R5LegRouter {
 	 */
 	private ProfileRequest prepareProfileRequest(LatLon fromLocation, LatLon toLocation, double departureTime) {
 		ProfileRequest profileRequest = new ProfileRequest();
-		
+
 		while (departureTime > 24.0 * 3600.0) {
 			departureTime -= 24 * 3600.0;
 		}
@@ -294,30 +294,35 @@ public class R5LegRouter {
 	 * @return May return null if no route is found
 	 */
 	public List<R5Leg> route(LatLon fromLocation, LatLon toLocation, double departureTime) {
-		PointToPointQuery query = new PointToPointQuery(transportNetwork);
+		try {
+			PointToPointQuery query = new PointToPointQuery(transportNetwork);
+			ProfileRequest profileRequest = prepareProfileRequest(fromLocation, toLocation, departureTime);
+			ProfileResponse response = query.getPlan(profileRequest);
 
-		ProfileRequest profileRequest = prepareProfileRequest(fromLocation, toLocation, departureTime);
-		ProfileResponse response = query.getPlan(profileRequest);
+			// Find quickest connection (soonest arrival time)
+			ProfileOption selectedOption = null;
+			Itinerary selectedItinerary = null;
+			double selectedScore = Double.NEGATIVE_INFINITY;
 
-		// Find quickest connection (soonest arrival time)
-		ProfileOption selectedOption = null;
-		Itinerary selectedItinerary = null;
-		double selectedScore = Double.NEGATIVE_INFINITY;
+			for (ProfileOption option : response.getOptions()) {
+				for (Itinerary itinerary : option.itinerary) {
+					double score = scorer.scoreItinerary(itinerary);
 
-		for (ProfileOption option : response.getOptions()) {
-			for (Itinerary itinerary : option.itinerary) {
-				double score = scorer.scoreItinerary(itinerary);
-
-				if (score > selectedScore) {
-					selectedScore = score;
-					selectedOption = option;
-					selectedItinerary = itinerary;
+					if (score > selectedScore) {
+						selectedScore = score;
+						selectedOption = option;
+						selectedItinerary = itinerary;
+					}
 				}
 			}
-		}
 
-		if (selectedOption != null) {
-			return route(fromLocation, toLocation, departureTime, selectedOption, selectedItinerary);
+			if (selectedOption != null) {
+				return route(fromLocation, toLocation, departureTime, selectedOption, selectedItinerary);
+			}
+		} catch (IllegalStateException e) {
+			if (!e.getMessage().contains("No valid itineraries found for path")) {
+				throw e;
+			}
 		}
 
 		return null; // No route found

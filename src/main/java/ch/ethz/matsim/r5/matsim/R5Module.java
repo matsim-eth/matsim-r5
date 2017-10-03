@@ -23,6 +23,7 @@ import ch.ethz.matsim.r5.route.LinkFinder;
 import ch.ethz.matsim.r5.route.LoopLinkFinder;
 import ch.ethz.matsim.r5.scoring.R5ItineraryScorer;
 import ch.ethz.matsim.r5.scoring.SoonestArrivalTimeScorer;
+import ch.ethz.matsim.r5.utils.R5Cleaner;
 import ch.ethz.matsim.r5.utils.spatial.CoordToLatLonTransformation;
 import ch.ethz.matsim.r5.utils.spatial.DefaultCoordToLatLon;
 import ch.ethz.matsim.r5.utils.spatial.DefaultLatLonToCoord;
@@ -40,8 +41,13 @@ public class R5Module extends AbstractModule {
 			File inputFile = config.getNetworkInputPath().startsWith("/") ? new File(config.getNetworkInputPath())
 					: new File(ConfigGroup.getInputFileURL(getConfig().getContext(), config.getNetworkInputPath())
 							.getPath());
+			
+			TransportNetwork transportNetwork = TransportNetwork.read(inputFile);
+			
+			logger.info("Cleaning R5 network ...");
+			new R5Cleaner(transportNetwork).run();
 
-			return TransportNetwork.read(inputFile);
+			return transportNetwork;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("Error while loading R5 network");

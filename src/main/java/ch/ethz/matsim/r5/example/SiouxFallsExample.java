@@ -7,6 +7,7 @@ import java.net.URL;
 
 import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.contrib.otfvis.OTFVisLiveModule;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.config.ConfigUtils;

@@ -41,6 +41,11 @@
 			<version>0.10.0-eth</version>
 		</dependency>
 		<dependency>
+			<groupId>org.matsim.contrib</groupId>
+			<artifactId>otfvis</artifactId>
+			<version>0.10.0-eth</version>
+		</dependency>
+		<dependency>
 			<groupId>com.conveyal</groupId>
 			<artifactId>r5</artifactId>
 			<version>3.1.0-matsim</version>

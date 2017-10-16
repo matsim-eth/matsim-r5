@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.ethz.matsim</groupId>
-	<artifactId>r5</artifactId>
+	<artifactId>r5_pt</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
@@ -22,7 +22,28 @@
 			<id>matsim-eth</id>
 			<url>http://dl.bintray.com/matsim-eth/matsim</url>
 		</repository>
+		<repository>
+			<id>eth-ivt-matsim</id>
+			<url>https://packagecloud.io/eth-ivt/r5/maven2</url>
+		</repository>
 	</repositories>
+
+	<distributionManagement>
+		<snapshotRepository>
+			<id>packagecloud-eth-ivt</id>
+			<url>packagecloud+https://packagecloud.io/eth-ivt/matsim</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<build>
+		<extensions>
+			<extension>
+				<groupId>io.packagecloud.maven.wagon</groupId>
+				<artifactId>maven-packagecloud-wagon</artifactId>
+				<version>0.0.6</version>
+			</extension>
+		</extensions>
+	</build>
 
 	<dependencies>
 		<dependency>
@@ -48,7 +69,7 @@
 		<dependency>
 			<groupId>com.conveyal</groupId>
 			<artifactId>r5</artifactId>
-			<version>3.1.0-matsim</version>
+			<version>3.1.0-matsim-SNAPSHOT</version>
 
 			<exclusions>
 				<exclusion>

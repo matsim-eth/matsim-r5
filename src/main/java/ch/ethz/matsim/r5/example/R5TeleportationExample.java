@@ -39,7 +39,7 @@ public class R5TeleportationExample {
 		TransportNetwork transportNetwork = TransportNetwork.read(new File(path));
 		new R5Cleaner(transportNetwork).run();
 
-		String day = "2017-09-25";
+		String day = "2017-10-03";
 		String timezone = "+02:00";
 		double beelineDistanceFactor = Math.sqrt(2.0);
 
@@ -55,11 +55,11 @@ public class R5TeleportationExample {
 				linkFinder);
 
 		Facility<?> fromFacility = new FakeFacility(
-				latLonToCoord.transform(new LatLon(46.878275381782174, 8.21909674274457)));
+				latLonToCoord.transform(new LatLon(46.85639004531476, 7.070712492578848)));
 		Facility<?> toFacility = new FakeFacility(
-				latLonToCoord.transform(new LatLon(46.86166306929253, 8.233059319342907)));
-		double departureTime = 62605.0;
-
+				latLonToCoord.transform(new LatLon(47.02627488630519, 6.956391395823911)));
+		double departureTime = 61958.0;
+		
 		List<? extends PlanElement> plan = routingModule.calcRoute(fromFacility, toFacility, departureTime, null);
 
 		for (PlanElement element : plan) {

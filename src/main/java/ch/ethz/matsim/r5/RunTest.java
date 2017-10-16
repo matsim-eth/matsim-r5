@@ -127,7 +127,7 @@ public class RunTest {
 				TransitModes.FUNICULAR);
 		profileRequest.accessModes = EnumSet.of(LegMode.WALK);
 		profileRequest.egressModes = EnumSet.of(LegMode.WALK);
-
+		
 		ProfileResponse response = query.getPlan(profileRequest);
 
 		ProfileOption selectedOption = null;
@@ -164,10 +164,10 @@ public class RunTest {
 					int timeIndex = itinerary.connection.transit.get(stageIndex).time;
 
 					SegmentPattern pattern = option.transit.get(stageIndex).segmentPatterns.get(patternIndex);
-
+					
 					double stageDepartureTime = pattern.fromDepartureTime.get(timeIndex).get(ChronoField.SECOND_OF_DAY);
 					double stageArrivalTime = pattern.toArrivalTime.get(timeIndex).get(ChronoField.SECOND_OF_DAY);
-
+					
 					Stop departureStop = option.transit.get(stageIndex).from;
 					Stop arrivalStop = option.transit.get(stageIndex).to;
 

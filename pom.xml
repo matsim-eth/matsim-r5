@@ -23,7 +23,7 @@
 			<url>http://dl.bintray.com/matsim-eth/matsim</url>
 		</repository>
 		<repository>
-			<id>eth-ivt-matsim</id>
+			<id>r5-matsim</id>
 			<url>https://packagecloud.io/eth-ivt/r5/maven2</url>
 		</repository>
 	</repositories>

@@ -144,6 +144,14 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 					previousActivity = activity;
 				}
 			}
+			
+			for (PlanElement element : matsimPlan) {
+				if (element instanceof Activity) {
+					Activity activity = (Activity) element;
+					activity.setMaximumDuration(Math.max(0, activity.getEndTime() - activity.getStartTime()));
+					activity.setEndTime(Time.UNDEFINED_TIME);
+				}
+			}
 	
 			return matsimPlan;
 		} else if (walkRouter != null) {

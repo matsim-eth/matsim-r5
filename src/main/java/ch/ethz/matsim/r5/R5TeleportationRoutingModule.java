@@ -12,7 +12,7 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.api.core.v01.population.Route;
 import org.matsim.core.population.PopulationUtils;
-import org.matsim.core.population.routes.GenericRouteImpl;
+import org.matsim.core.population.routes.GenericRouteFactory;
 import org.matsim.core.router.RoutingModule;
 import org.matsim.core.router.StageActivityTypes;
 import org.matsim.core.router.StageActivityTypesImpl;
@@ -124,7 +124,8 @@ public class R5TeleportationRoutingModule implements RoutingModule {
 				Id<Link> startLinkId = getStartLinkId(leg, fromFacility);
 				Id<Link> endLinkId = getEndLinkId(leg, toFacility);
 	
-				Route matsimRoute = new GenericRouteImpl(startLinkId, endLinkId);
+				GenericRouteFactory factory = new GenericRouteFactory();
+				Route matsimRoute = factory.createRoute(startLinkId, endLinkId);
 				matsimRoute.setDistance(leg.getDistance());
 				matsimRoute.setTravelTime(leg.getArrivalTime() - leg.getDepartureTime());
 	

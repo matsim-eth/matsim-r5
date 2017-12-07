@@ -59,12 +59,12 @@
 		<dependency>
 			<groupId>org.matsim</groupId>
 			<artifactId>matsim</artifactId>
-			<version>0.10.0-eth</version>
+			<version>0.10.0-nov17</version>
 		</dependency>
 		<dependency>
 			<groupId>org.matsim.contrib</groupId>
 			<artifactId>otfvis</artifactId>
-			<version>0.10.0-eth</version>
+			<version>0.10.0-nov17</version>
 		</dependency>
 		<dependency>
 			<groupId>com.conveyal</groupId>

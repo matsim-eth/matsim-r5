@@ -90,7 +90,7 @@ public class R5LegRouter {
 	 */
 	private ProfileRequest prepareProfileRequest(LatLon fromLocation, LatLon toLocation, double departureTime) {
 		ProfileRequest profileRequest = new ProfileRequest();
-
+		
 		while (departureTime > 24.0 * 3600.0) {
 			departureTime -= 24 * 3600.0;
 		}

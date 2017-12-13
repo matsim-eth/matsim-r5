@@ -13,5 +13,5 @@ public interface R5ItineraryScorer {
 	 * 
 	 * @param itinerary from R5
 	 */
-	double scoreItinerary(Itinerary itinerary);
+	double scoreItinerary(Itinerary itinerary, double departureTime);
 }

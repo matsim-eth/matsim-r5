@@ -317,7 +317,7 @@ public class R5LegRouter {
 
 			for (ProfileOption option : response.getOptions()) {
 				for (Itinerary itinerary : option.itinerary) {
-					double score = scorer.scoreItinerary(itinerary);
+					double score = scorer.scoreItinerary(itinerary, departureTime);
 
 					if (score > selectedScore) {
 						selectedScore = score;
